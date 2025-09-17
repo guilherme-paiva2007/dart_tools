@@ -72,12 +72,12 @@ final class Id {
   Id(List<String> parts) {
     if (parts.isEmpty) throw StateError("Id cannot be empty");
     this.parts = List.unmodifiable(parts);
-    _string = toString();
+    _string = parts.join(".");
   }
 
   factory Id.fromString(String str) {
     if (str.isEmpty) throw Exception("Id string cannot be empty");
-    return Id(str.split('/'));
+    return Id(str.split('.'));
   }
 
   @override
