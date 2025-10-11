@@ -17,7 +17,7 @@ final class MapParserClassType<T extends Object> extends MapParser with MapParse
 
   @override
   Result<T, ParseWarning> get(value) {
-    if (value is! JSONMap) return const Failure( Warning(ParseWarningCode.type) );
+    if (value is! JSONMap) return Failure( Warning(ParseWarningCode.type) );
     final result = filter(value);
 
     if (result is Success) {
@@ -38,7 +38,7 @@ final class SubMapParserType extends MapParser with MapParserType<JSONMap> {
 
   @override
   Result<JSONMap, ParseWarning> get(value) {
-    if (value is! JSONMap) return const Failure( Warning(ParseWarningCode.type) );
+    if (value is! JSONMap) return Failure( Warning(ParseWarningCode.type) );
     final result = filter(value);
 
     if (result is Success) {
@@ -60,7 +60,7 @@ final class MapParserListType<T> extends MapParserType<List<T>> {
 
   @override
   Result<List<T>, ParseWarning> get(value) {
-    if (value is! List) return const Failure( Warning(ParseWarningCode.type) );
+    if (value is! List) return Failure( Warning(ParseWarningCode.type) );
     final List<T> list = [];
     final List<ParseWarning> warnings = [];
 
@@ -69,7 +69,7 @@ final class MapParserListType<T> extends MapParserType<List<T>> {
       if (item is T) {
         list.add(item);
       } else {
-        warnings[i] = const Warning(ParseWarningCode.type);
+        warnings[i] = Warning(ParseWarningCode.type);
       }
     }
 

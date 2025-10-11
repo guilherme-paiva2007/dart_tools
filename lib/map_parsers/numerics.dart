@@ -1,11 +1,11 @@
 part of '../map_parser.dart';
 
-enum MapParserNumericTypes<T extends num> with MapParserType<T> {
+enum MapParserNumericTypes<T extends num?> with MapParserType<T> {
   integer<int>(_isInt, _asInt),
   floating<double>(_isDouble, _asDouble),
   
   integerBlankable<int>(_isInt, _asInt, true),
-  floatingBlankable<double>(_isDouble, _asDouble, true)
+  floatingBlankable<double>(_isDouble, _asDouble, true),
   ;
 
   @override
@@ -17,7 +17,7 @@ enum MapParserNumericTypes<T extends num> with MapParserType<T> {
   @override
   get(dynamic value) => _validate(value) ?
     Success(_convert(value)) :
-    const Failure( Warning(ParseWarningCode.type) );
+    Failure( Warning(ParseWarningCode.type) );
 
   const MapParserNumericTypes(this._validate, this._convert, [this.blankable = false]);
 }

@@ -1,5 +1,14 @@
 part of "../../features.dart";
 
+enum AutoCleaningCodes implements WarningCode {
+  shortInterval("Cleaning interval is less than 15 minutes");
+
+  @override
+  final String explanation;
+
+  const AutoCleaningCodes(this.explanation);
+}
+
 base mixin AutoCleaningRepository<M extends Model<M>> on Repository<M> {
   Duration get cleaningInterval;
   Duration get maxTtl;
@@ -29,7 +38,8 @@ base mixin AutoCleaningRepository<M extends Model<M>> on Repository<M> {
     }
 
     if (cleaningInterval < const Duration(minutes: 15)) {
-      throw Exception("cleaningInterval must be at least 15 minutes"); // TODO: change to global warns
+      // throw Exception("cleaningInterval must be at least 15 minutes");
+      Warning.global.log(Warning(AutoCleaningCodes.shortInterval, "cleaningInterval is ${cleaningInterval.inMinutes} minutes"));
     }
     if (_timerFirstStarted) {
       _timer.cancel();

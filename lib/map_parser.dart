@@ -42,7 +42,7 @@ final class MapParser {
 
       if (!map.containsKey(field)) {
         if (!type.blankable) {
-          warnings[field] = const ParseWarning(ParseWarningCode.missing);
+          warnings[field] = ParseWarning(ParseWarningCode.missing);
         }
         continue;
       }
@@ -71,7 +71,7 @@ extension on MapParser {
     if (allowExtraFields) return;
     for (var key in validatedFields) {
       if (!map.containsKey(key)) {
-        warnings[key] = const ParseWarning(ParseWarningCode.extra);
+        warnings[key] = ParseWarning(ParseWarningCode.extra);
       }
     }
   }
@@ -85,11 +85,26 @@ abstract mixin class MapParserType<T> {
   Type get type => T;
 }
 
+final class NullableParserType<T> extends MapParserType<T?> {
+  final MapParserType<T> original;
+
+  NullableParserType(this.original);
+  
+  @override
+  bool get blankable => original.blankable;
+
+  @override
+  Result<T?, ParseWarning> get(value) {
+    if (value == null) return Success(null);
+    return original.get(value);
+  }
+}
+
 mixin MapParserSimpleType<T> on MapParserType<T> {
   @override
   get(value) => value is T ?
     Success(value) :
-    const Failure( Warning(ParseWarningCode.type) );
+    Failure( Warning(ParseWarningCode.type) );
 }
 
 mixin MapParserComplexType<T> on MapParserType<T> {}

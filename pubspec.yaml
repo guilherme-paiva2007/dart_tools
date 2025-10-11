@@ -1,15 +1,14 @@
 name: dart_tools
-description: A sample command-line application.
+description: Biblioteca de códigos para Dart.
 version: 0.0.1-alpha.1
-# repository: https://github.com/my_org/my_repo
+repository: https://github.com/guilherme-paiva2007/dart_tools
 
 environment:
   sdk: ^3.9.0
 
-# Add regular dependencies here.
 dependencies:
   meta: ^1.16.0
-  # path: ^1.9.0
 
 dev_dependencies:
   lints: ^6.0.0
+  test: ^1.26.3

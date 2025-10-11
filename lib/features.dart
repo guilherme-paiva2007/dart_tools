@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:dart_tools/warnings.dart';
 import 'package:meta/meta.dart' show mustBeOverridden, mustCallSuper;
 
 import 'package:dart_tools/utils/limited_time_use_class.dart';
