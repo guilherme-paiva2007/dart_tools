@@ -32,48 +32,59 @@ final class MapParser {
     }, allowExtraFields ?? this.allowExtraFields);
 
 
-  Result<JSONMap, Map<String, ParseWarning>> filter(JSONMap map) {
+  Result<JSONMap, Map<String, ParseWarning>> filter(JSONMap map, [bool stopOnFirstWarning = false]) {
     final JSONMap filtered = {};
     final Set<String> validatedFields = {};
-    final Map<String, ParseWarning> warnings = {};
+    final Set<String> nonValidatedFields = map.keys.toSet();
+
+    final WarningMap<ParseWarningCode, String> warnings = WarningMap(ParseWarningCode.complex, {});
 
     for (var MapEntry(key: field, value: type) in fields.entries) {
       validatedFields.add(field);
+      nonValidatedFields.remove(field);
 
       if (!map.containsKey(field)) {
         if (!type.blankable) {
-          warnings[field] = ParseWarning(ParseWarningCode.missing);
+          if (!warnings.containsKey(field)) {
+            warnings[field] = WarningList<ParseWarningCode>(ParseWarningCode.complex, []);
+          }
+          (warnings[field] as WarningList<ParseWarningCode>).add(ParseWarning(ParseWarningCode.missing));
+          if (stopOnFirstWarning) return Failure(warnings);
         }
         continue;
       }
 
       final result = type.get(map[field]);
-      switch (result) {
-        case Failure _:
-          warnings[field] = result.failure!;
-          break;
-        case Success _:
-          filtered[field] = result.result!;
-          break;
+      if (result is Success<dynamic, Warning<ParseWarningCode>>) {
+        filtered[field] = result.result;
+      } else if (result is Failure<dynamic, Warning<ParseWarningCode>>) {
+        if (!warnings.containsKey(field)) {
+          warnings[field] = WarningList<ParseWarningCode>(ParseWarningCode.complex, []);
+        }
+        (warnings[field] as WarningList<ParseWarningCode>).add(result.failure);
+        if (stopOnFirstWarning) return Failure(warnings);
       }
     }
 
-    checkForExtraFields(map, validatedFields, warnings);
+    if (!allowExtraFields) {
+      for (var nonValidatedField in nonValidatedFields) {
+        if (!warnings.containsKey(nonValidatedField)) {
+          warnings[nonValidatedField] = WarningList<ParseWarningCode>(ParseWarningCode.complex, []);
+        }
+        (warnings[nonValidatedField] as WarningList<ParseWarningCode>).add(ParseWarning(ParseWarningCode.extra));
+        if (stopOnFirstWarning) return Failure(warnings);
+      }
+    }
 
-    return warnings.isEmpty ?
+    return warnings.values.every(_warningMapListAllEmptyEvery) ?
       Success(filtered) :
       Failure(warnings);
   }
-}
 
-extension on MapParser {
-  void checkForExtraFields(JSONMap map, Set<String> validatedFields, Map<String, ParseWarning> warnings) {
-    if (allowExtraFields) return;
-    for (var key in validatedFields) {
-      if (!map.containsKey(key)) {
-        warnings[key] = ParseWarning(ParseWarningCode.extra);
-      }
-    }
+  static bool _warningMapListAllEmptyEvery(ParseWarning warning) {
+    return warning is WarningList ?
+      (warning as WarningList).isEmpty :
+      true;
   }
 }
 

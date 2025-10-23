@@ -5,25 +5,25 @@ enum MapParserTypes<T> with MapParserType<T>, MapParserSimpleType<T> {
   boolean<bool>(),
   list<List>(),
   map<JSONMap>(),
-  empty<Null>(),
-  // stringNull<String?>(),
-  // booleanNull<bool?>(),
-  // listNull<List?>(),
-  // mapNull<JSONMap?>(),
-
+  
   stringBlankable<String>(true),
   booleanBlankable<bool>(true),
   listBlankable<List>(true),
   mapBlankable<JSONMap>(true),
-  emptyBlankable<Null>(true),
-  // stringNullBlankable<String?>(true),
-  // booleanNullBlankable<bool?>(true),
-  // listNullBlankable<List?>(true),
-  // mapNullBlankable<JSONMap?>(true),
   ;
 
   @override
   final bool blankable;
 
   const MapParserTypes([this.blankable = false]);
+}
+
+enum MapParserNullTypes with MapParserType<Null>, MapParserSimpleType<Null> {
+  empty(),
+  emptyBlankable(true);
+
+  @override
+  final bool blankable;
+
+  const MapParserNullTypes([this.blankable = false]);
 }

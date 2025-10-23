@@ -36,7 +36,7 @@ abstract base class Service<M extends Model<M>> with LimitedTimeUseClass {
   // ignore: unused_element
   void _updateInstance(ModelUpdate<M> update) {
     for (var repo in _repositories) {
-      final instance = repo.get(update.id);
+      final instance = repo.get(update.$id);
       if (instance != null) {
         update.update(instance);
       }

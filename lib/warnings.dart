@@ -22,9 +22,11 @@ abstract interface class WarningCode {
 }
 
 final class WarningList<C extends WarningCode> extends Warning<C> with ListMixin<Warning<C>> {
-  final List<Warning<C>> subWarnings;
+  late final List<Warning<C>> subWarnings;
 
-  WarningList(super.code, this.subWarnings, [super.message]): super();
+  WarningList(super.code, Iterable<Warning<C>> subWarnings, [super.message]): super() {
+    this.subWarnings = List<Warning<C>>.from(subWarnings);
+  }
 
   @override
   int get length => subWarnings.length;
@@ -38,6 +40,11 @@ final class WarningList<C extends WarningCode> extends Warning<C> with ListMixin
   void operator []=(int index, Warning<C> value) {
     subWarnings[index] = value;
   }
+
+  @override
+  void add(Warning<C> element) => subWarnings.add(element);
+  @override
+  Warning<C> removeAt(int index) => subWarnings.removeAt(index);
 
   @override String toString() => "WarningList(${_baseToString()}: [${join(", ")}])";
 }
@@ -90,7 +97,7 @@ final class _PrivateWarningNotifier<C extends WarningCode> extends PrivateChange
   final List<Warning<C>> _warnings = [];
   late final List<Warning<C>> warnings;
 
-  _PrivateWarningNotifier(): super( KeyedListenableController(_key) ) {
+  _PrivateWarningNotifier(): super( KeyedListenerController(_key) ) {
     warnings = UnmodifiableListView(_warnings);
   }
 
@@ -100,5 +107,5 @@ final class _PrivateWarningNotifier<C extends WarningCode> extends PrivateChange
     controller.update(warning, _key);
   }
 
-  static final String _key = KeyedListenableController.randomKey;
+  static final String _key = KeyedListenerController.randomKey;
 }

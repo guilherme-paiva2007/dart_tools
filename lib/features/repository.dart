@@ -17,7 +17,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     }
     _providers.clear();
     for (var item in _instances.values) {
-      item.instance._repositories.remove(this);
+      item.instance._$repositories.remove(this);
     }
     _instances.clear();
     for (var service in _services) {
@@ -60,13 +60,13 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
   @mustCallSuper
   void _saveInstance(M instance) {
     _instances[instance.$id] = _RepositoryItem(instance);
-    instance._repositories.add(this);
+    instance._$repositories.add(this);
   }
 
   @mustCallSuper
   void _callAddProviders(M instance) {
     for (var provider in _providers) {
-      for (var callback in provider._listeners._addCallbacks) {
+      for (var callback in provider._listeners.addCallbacks) {
         callback(instance);
       }
     }
@@ -100,7 +100,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
   @mustCallSuper
   void _removeInstance(M instance) {
     _instances.remove(instance.$id);
-    instance._repositories.remove(this);
+    instance._$repositories.remove(this);
   }
 
   @mustCallSuper
@@ -112,7 +112,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     _instances.removeWhere((id, item) {
       if (verifier(id, item)) {
         removed.add(item.instance);
-        item.instance._repositories.remove(this);
+        item.instance._$repositories.remove(this);
         return true;
       }
       return false;
@@ -127,7 +127,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
   @mustCallSuper
   void _callRemoveProviders(M instance) {
     for (var provider in _providers) {
-      for (var callback in provider._listeners._removeCallbacks) {
+      for (var callback in provider._listeners.removeCallbacks) {
         callback(instance);
       }
     }

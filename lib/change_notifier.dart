@@ -6,10 +6,17 @@ import 'package:dart_tools/utils/limited_time_use_class.dart';
 
 typedef ListenerCallback<T> = void Function([T value]);
 
-abstract class Listenable<T> with LimitedTimeUseClass {
+abstract base class Listenable<L extends Listener> {
+  L get listener;
+}
+
+abstract base class Listener<T> with LimitedTimeUseClass implements Listenable<Listener<T>> {
+  @override
+  Listener<T> get listener => this;
+  
   final Set<ListenerCallback<T>> _callbacks;
 
-  Listenable([this._callbacks = const {}]) {
+  Listener([this._callbacks = const {}]) {
     init();
   }
 
@@ -36,12 +43,12 @@ abstract class Listenable<T> with LimitedTimeUseClass {
   }
 }
 
-mixin PublicListenable<T> on Listenable<T> {
+base mixin PublicListener<T> on Listener<T> {
   void notifyListeners(T value) => active ? _notifyListeners(value) : throwIfNotActive();
 }
 
-mixin _PrivateListenable<T> on Listenable<T> {
-  ListenableController<T> get controller;
+base mixin _PrivateListener<T> on Listener<T> {
+  ListenerController<T> get controller;
   
   @override
   void init() {
@@ -56,44 +63,44 @@ mixin _PrivateListenable<T> on Listenable<T> {
   }
 }
 
-final class ListenableController<T> with LimitedTimeUseClass {
-  final Set<_PrivateListenable<T>> _listenables = {};
+final class ListenerController<T> with LimitedTimeUseClass {
+  final Set<_PrivateListener<T>> _listeners = {};
 
   void update(T v, [ dynamic key ]) {
     throwIfNotActive();
-    for (var listenable in _listenables) {
-      listenable._notifyListeners(v);
+    for (var listener in _listeners) {
+      listener._notifyListeners(v);
     }
   }
   
-  ListenableController() {
+  ListenerController() {
     init();
   }
 
-  void subscribe(Listenable<T> listenable) => active ?
-    (listenable is _PrivateListenable<T> ? _listenables.add(listenable) : null) :
+  void subscribe(Listener<T> listener) => active ?
+    (listener is _PrivateListener<T> ? _listeners.add(listener) : null) :
     throwIfNotActive();
 
-  void unsubscribe(Listenable<T> listenable) => active ? _listenables.remove(listenable) : throwIfNotActive();
+  void unsubscribe(Listener<T> listener) => active ? _listeners.remove(listener) : throwIfNotActive();
 
   @override
   void dispose() {
-    _listenables.clear();
+    _listeners.clear();
     super.dispose();
   }
 }
 
-final class KeyedListenableController<T> extends ListenableController<T> {
+final class KeyedListenerController<T> extends ListenerController<T> {
   final String _key;
   
-  KeyedListenableController(this._key);
+  KeyedListenerController(this._key);
 
   @override
   void update(T v, [covariant String? key]) {
     if (key == _key) {
       super.update(v, key);
     } else {
-      throw StateError('Key mismatch for KeyedListenableController');
+      throw StateError('Key mismatch for KeyedListenerController');
     }
   }
 
@@ -105,23 +112,35 @@ final class KeyedListenableController<T> extends ListenableController<T> {
 
 
 
-abstract class ChangeNotifier<T> extends Listenable<T> {
+abstract base class ChangeNotifier<T> extends Listener<T> {
+  @override
+  ChangeNotifier<T> get listener => this;
+
   ChangeNotifier._();
 }
 
-abstract class PublicChangeNotifier<T> extends ChangeNotifier<T> with PublicListenable<T> {
+abstract base class PublicChangeNotifier<T> extends ChangeNotifier<T> with PublicListener<T> {
+  @override
+  PublicChangeNotifier<T> get listener => this;
+
   PublicChangeNotifier(): super._();
 }
 
 /// To protect the controller, it's recommended to create an static private key.
-abstract class PrivateChangeNotifier<T> extends ChangeNotifier<T> with _PrivateListenable<T> {
+abstract base class PrivateChangeNotifier<T> extends ChangeNotifier<T> with _PrivateListener<T> {
   @override
-  final KeyedListenableController<T> controller;
+  PrivateChangeNotifier<T> get listener => this;
+
+  @override
+  final KeyedListenerController<T> controller;
 
   PrivateChangeNotifier(this.controller): super._();
 }
 
-abstract final class ValueNotifier<T> extends Listenable<T> {
+sealed class ValueNotifier<T> extends Listener<T> {
+  @override
+  ValueNotifier<T> get listener => this;
+  
   late T _value;
   T get value => _value;
 
@@ -133,11 +152,14 @@ abstract final class ValueNotifier<T> extends Listenable<T> {
 
   factory ValueNotifier({
     T? initValue,
-    ListenableController<T>? controller
+    ListenerController<T>? controller
   }) => controller == null ? PublicValueNotifier(initValue) : PrivateValueNotifier(controller, initValue);
 }
 
-final class PublicValueNotifier<T> extends ValueNotifier<T> with PublicListenable<T> {
+final class PublicValueNotifier<T> extends ValueNotifier<T> with PublicListener<T> {
+  @override 
+  PublicValueNotifier<T> get listener => this;
+
   PublicValueNotifier([super.initValue]): super._();
 
   set value(T v) => _notifyListeners(_value = v);
@@ -146,9 +168,12 @@ final class PublicValueNotifier<T> extends ValueNotifier<T> with PublicListenabl
   void notifyListeners(T value) => _notifyListeners(value);
 }
 
-final class PrivateValueNotifier<T> extends ValueNotifier<T> with _PrivateListenable<T> {
+final class PrivateValueNotifier<T> extends ValueNotifier<T> with _PrivateListener<T> {
   @override
-  final ListenableController<T> controller;
+  PrivateValueNotifier<T> get listener => this;
+
+  @override
+  final ListenerController<T> controller;
   
   @override
   void _notifyListeners(T value) {

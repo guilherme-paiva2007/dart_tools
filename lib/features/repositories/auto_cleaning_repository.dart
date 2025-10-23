@@ -39,7 +39,7 @@ base mixin AutoCleaningRepository<M extends Model<M>> on Repository<M> {
 
     if (cleaningInterval < const Duration(minutes: 15)) {
       // throw Exception("cleaningInterval must be at least 15 minutes");
-      Warning.global.log(Warning(AutoCleaningCodes.shortInterval, "cleaningInterval is ${cleaningInterval.inMinutes} minutes"));
+      Warning.global.log(Warning(AutoCleaningCodes.shortInterval, "$runtimeType cleaning interval is ${cleaningInterval.inMinutes} minutes (too short)"));
     }
     if (_timerFirstStarted) {
       _timer.cancel();

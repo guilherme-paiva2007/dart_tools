@@ -20,8 +20,8 @@ final class MapParserClassType<T extends Object> extends MapParser with MapParse
     if (value is! JSONMap) return Failure( Warning(ParseWarningCode.type) );
     final result = filter(value);
 
-    if (result is Success) {
-      return Success(parser(result.result!));
+    if (result is Success<Map<String, dynamic>, Map<String, Warning<ParseWarningCode>>>) {
+      return Success(parser(result.result));
     }
     return Failure(WarningMap(ParseWarningCode.complex, result.failure!));
   }
@@ -41,20 +41,22 @@ final class SubMapParserType extends MapParser with MapParserType<JSONMap> {
     if (value is! JSONMap) return Failure( Warning(ParseWarningCode.type) );
     final result = filter(value);
 
-    if (result is Success) {
-      return Success(result.result!);
+    if (result is Success<Map<String, dynamic>, Map<String, Warning<ParseWarningCode>>>) {
+      return Success(result.result);
     }
-    return Failure(WarningMap(ParseWarningCode.complex, result.failure!));
+    return Failure(WarningMap(ParseWarningCode.complex, (result as Failure<Map<String, dynamic>, Map<String, Warning<ParseWarningCode>>>).failure));
   }
 }
 
-final class MapParserListType<T> extends MapParserType<List<T>> {
+final class MapParserListType<T, P extends dynamic> extends MapParserType<List<T>> {
   @override
   final bool blankable;
 
-  final T Function(dynamic value)? parser;
+  final MapParserType<T> subtype;
+  final T Function(P value)? parser;
 
-  MapParserListType(this.blankable, {
+  MapParserListType(this.subtype, {
+    this.blankable = false,
     this.parser
   });
 
@@ -62,20 +64,22 @@ final class MapParserListType<T> extends MapParserType<List<T>> {
   Result<List<T>, ParseWarning> get(value) {
     if (value is! List) return Failure( Warning(ParseWarningCode.type) );
     final List<T> list = [];
-    final List<ParseWarning> warnings = [];
+    final Map<int, ParseWarning> warnings = {};
+
+    final bool hasParser = parser != null;
 
     for (var i = 0; i < value.length; i++) {
-      final item = parser?.call(value[i]) ?? value[i];
-      if (item is T) {
-        list.add(item);
-      } else {
-        warnings[i] = Warning(ParseWarningCode.type);
+      final item = subtype.get(hasParser ? parser!.call(value[i]) : value[i]);
+      if (item is Success<T, Warning<ParseWarningCode>>) {
+        list.add(item.result);
+      } else if (item is Failure<T, Warning<ParseWarningCode>>) {
+        warnings[i] = item.failure;
       }
     }
 
     if (warnings.isEmpty) {
       return Success(list);
     }
-    return Failure(WarningList(ParseWarningCode.complex, warnings));
+    return Failure(WarningMap(ParseWarningCode.complex, warnings));
   }
 }

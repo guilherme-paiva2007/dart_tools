@@ -1,14 +1,14 @@
 part of '../features.dart';
 
 abstract base class Model<M extends Model<M>> with LimitedTimeUseClass {
-  final HashSet<Repository<M>> _repositories = HashSet();
-  final List<ModelUpdate<M>> _updates = [];
+  final HashSet<Repository<M>> _$repositories = HashSet();
+  final List<ModelUpdate<M>> _$updates = [];
 
   @mustCallSuper
   final Id $id;
 
   @mustCallSuper
-  ModelUpdate<M>? get $lastUpdate => _updates.isNotEmpty ? _updates.last : null;
+  ModelUpdate<M>? get $lastUpdate => _$updates.isNotEmpty ? _$updates.last : null;
 
   Model(this.$id) {
     init();
@@ -16,33 +16,36 @@ abstract base class Model<M extends Model<M>> with LimitedTimeUseClass {
 
   @override void dispose() {
     super.dispose();
-    for (var repo in _repositories) {
+    for (var repo in _$repositories) {
       repo.remove(this as M);
     }
   }
 }
 
 abstract class ModelUpdate<M extends Model<M>> {
-  final Id id;
+  final Id $id;
 
-  ModelUpdate(this.id);
+  ModelUpdate(this.$id);
 
   @mustCallSuper
-  void update(M instance) {
+  Result<M, Warning> update(M instance) {
     if (!instance.inited) throw StateError('Model is not initialized');
     if (instance.disposed) throw StateError('Model is already disposed');
-    if (instance.$id != id) {
-      throw ArgumentError('Update id $id does not match instance id ${instance.$id}');
+    if (instance.$id != $id) {
+      return Failure(Warning(
+        FeatureWarningCodes.unmatchId,
+        'Trying to update model with id ${instance.$id} using update with id ${$id}',
+      ));
     }
-    instance._updates.add(this);
+    instance._$updates.add(this);
     _updateLastUse(instance);
     _callUpdateProviders(instance);
-    changeData(instance);
+    return changeData(instance);
   }
 
   @mustCallSuper
   void _updateLastUse(M instance) {
-    for (var repo in instance._repositories) {
+    for (var repo in instance._$repositories) {
       final item = repo._instances[instance.$id];
       if (item != null) {
         item.reuse();
@@ -52,9 +55,9 @@ abstract class ModelUpdate<M extends Model<M>> {
 
   @mustCallSuper
   void _callUpdateProviders(M instance) {
-    for (var repo in instance._repositories) {
+    for (var repo in instance._$repositories) {
       for (var provider in repo._providers) {
-        for (var callback in provider._listeners._updateCallbacks) {
+        for (var callback in provider._listeners.updateCallbacks) {
           callback(instance);
         }
       }
@@ -62,22 +65,21 @@ abstract class ModelUpdate<M extends Model<M>> {
   }
 
   @mustBeOverridden
-  void changeData(M instance);
+  Result<M, Warning> changeData(M instance);
 }
 
-final class Id {
-  late final List<String> parts;
+sealed class Id<T extends Object> {
+  factory Id.part(List<T> parts) = PartId;
+}
+
+final class PartId<T extends Object> implements Id<T> {
+  late final List<T> parts;
   late final String _string;
 
-  Id(List<String> parts) {
+  PartId(List<T> parts): assert(parts.isNotEmpty, "Parts cannot be empty") {
     if (parts.isEmpty) throw StateError("Id cannot be empty");
-    this.parts = List.unmodifiable(parts);
+    this.parts = List<T>.unmodifiable(parts);
     _string = parts.join(".");
-  }
-
-  factory Id.fromString(String str) {
-    if (str.isEmpty) throw Exception("Id string cannot be empty");
-    return Id(str.split('.'));
   }
 
   @override
@@ -87,5 +89,5 @@ final class Id {
   int get hashCode => _string.hashCode;
 
   @override
-  bool operator ==(Object other) => other is Id && _string == other._string;
+  bool operator ==(Object other) => other is PartId && _string == other._string;
 }
