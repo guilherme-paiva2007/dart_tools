@@ -4,6 +4,8 @@ abstract base class Model<M extends Model<M>> with LimitedTimeUseClass {
   final HashSet<Repository<M>> _$repositories = HashSet();
   final List<ModelUpdate<M>> _$updates = [];
 
+  UnmodifiableListView<ModelUpdate<M>> get $updates => UnmodifiableListView(_$updates);
+
   @mustCallSuper
   final Id $id;
 
@@ -20,6 +22,8 @@ abstract base class Model<M extends Model<M>> with LimitedTimeUseClass {
       repo.remove(this as M);
     }
   }
+
+  static bool registerUpdates = true;
 }
 
 abstract class ModelUpdate<M extends Model<M>> {
@@ -37,16 +41,17 @@ abstract class ModelUpdate<M extends Model<M>> {
         'Trying to update model with id ${instance.$id} using update with id ${$id}',
       ));
     }
-    instance._$updates.add(this);
+    if (Model.registerUpdates) instance._$updates.add(this);
     _updateLastUse(instance);
+    final result = changeData(instance);
     _callUpdateProviders(instance);
-    return changeData(instance);
+    return result;
   }
 
   @mustCallSuper
   void _updateLastUse(M instance) {
     for (var repo in instance._$repositories) {
-      final item = repo._instances[instance.$id];
+      final item = repo._instances[instance.$id._hashCode];
       if (item != null) {
         item.reuse();
       }
@@ -69,14 +74,28 @@ abstract class ModelUpdate<M extends Model<M>> {
 }
 
 sealed class Id<T extends Object> {
+  Id._();
+
   factory Id.part(List<T> parts) = PartId;
+
+  @override
+  bool operator ==(Object other) => _compare(other);
+
+  @override
+  int get hashCode => _hashCode;
+
+  int get _hashCode;
+
+  bool _compare(Object other);
 }
 
-final class PartId<T extends Object> implements Id<T> {
+final class PartId<T extends Object> extends Id<T> {
   late final List<T> parts;
   late final String _string;
 
-  PartId(List<T> parts): assert(parts.isNotEmpty, "Parts cannot be empty") {
+  String get string => _string;
+
+  PartId(List<T> parts): assert(parts.isNotEmpty, "Parts cannot be empty"), super._() {
     if (parts.isEmpty) throw StateError("Id cannot be empty");
     this.parts = List<T>.unmodifiable(parts);
     _string = parts.join(".");
@@ -86,8 +105,8 @@ final class PartId<T extends Object> implements Id<T> {
   String toString() => _string;
 
   @override
-  int get hashCode => _string.hashCode;
+  int get _hashCode => _string.hashCode;
 
   @override
-  bool operator ==(Object other) => other is PartId && _string == other._string;
+  bool _compare(Object other) => other is PartId<T> && _string == other._string;
 }

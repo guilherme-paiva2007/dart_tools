@@ -66,7 +66,7 @@ base mixin AutoCleaningRepository<M extends Model<M>> on Repository<M> {
     _removeMultipleInstances(_itemWhereVerifier, callProvidersOnRemove);
   }
 
-  bool _itemWhereVerifier(Id id, _RepositoryItem<M> item) {
-    return _now.difference(item.lastUse) > _currentMaxTtl;
+  bool _itemWhereVerifier(int id, RepositoryItem<M> item) {
+    return _now.difference(item._lastUse) > _currentMaxTtl;
   }
 }

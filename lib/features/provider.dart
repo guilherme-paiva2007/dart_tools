@@ -1,6 +1,6 @@
 part of '../features.dart';
 
-abstract base class Provider<M extends Model<M>> with LimitedTimeUseClass {
+base class Provider<M extends Model<M>> with LimitedTimeUseClass {
   final _ProviderListeners<M> _listeners = _ProviderListeners._();
   final HashSet<Repository<M>> _repositories = HashSet();
 

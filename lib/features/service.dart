@@ -3,8 +3,12 @@ part of "../features.dart";
 abstract base class Service<M extends Model<M>> with LimitedTimeUseClass {
   final HashSet<Repository<M>> _repositories = HashSet();
 
+  @protected
+  late final UnmodifiableSetView<Repository<M>> repositories;
+
   Service() {
     init();
+    repositories = UnmodifiableSetView(_repositories);
   }
 
   @override
@@ -16,25 +20,25 @@ abstract base class Service<M extends Model<M>> with LimitedTimeUseClass {
     _repositories.clear();
   }
 
+  @protected
   @mustCallSuper
-  // ignore: unused_element
-  void _addInRepositories(M instance) {
+  void addInRepositories(M instance) {
     for (var repo in _repositories) {
       repo.add(instance);
     }
   }
 
+  @protected
   @mustCallSuper
-  // ignore: unused_element
-  void _removeInRepositories(Id id) {
+  void removeInRepositories(Id id) {
     for (var repo in _repositories) {
       repo.removeId(id);
     }
   }
 
+  @protected
   @mustCallSuper
-  // ignore: unused_element
-  void _updateInstance(ModelUpdate<M> update) {
+  void updateInstance(ModelUpdate<M> update) {
     for (var repo in _repositories) {
       final instance = repo.get(update.$id);
       if (instance != null) {

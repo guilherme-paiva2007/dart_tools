@@ -3,7 +3,7 @@ import 'dart:collection';
 
 import 'package:dart_tools/result.dart';
 import 'package:dart_tools/warnings.dart';
-import 'package:meta/meta.dart' show mustBeOverridden, mustCallSuper;
+import 'package:meta/meta.dart' show mustBeOverridden, mustCallSuper, protected;
 
 import 'package:dart_tools/utils/limited_time_use_class.dart';
 

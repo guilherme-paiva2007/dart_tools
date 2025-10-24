@@ -29,6 +29,7 @@ mixin class LimitedTimeUseClass {
   bool get active => _activeValue;
 
   @mustCallSuper
+  @protected
   void init() {
     if (_inited) {
       throw StateError('$runtimeType is already initialized');

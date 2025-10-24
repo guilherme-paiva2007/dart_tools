@@ -1,12 +1,15 @@
 part of '../features.dart';
 
-abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
-  final HashMap<Id, _RepositoryItem<M>> _instances = HashMap();
+base class Repository<M extends Model<M>> with LimitedTimeUseClass {
+  final HashMap<int, RepositoryItem<M>> _instances = HashMap();
   final HashSet<Provider<M>> _providers = HashSet();
   final HashSet<Service<M>> _services = HashSet();
 
+  late final RepositoryView<M> instances;
+
   Repository() {
     init();
+    instances = RepositoryView<M>(this);
   }
 
   @override
@@ -31,7 +34,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     if (!active) {
       throw StateError('Repository is not active');
     }
-    final item = _instances[id];
+    final item = _instances[id._hashCode];
     if (item != null) {
       item.reuse();
       return item.instance;
@@ -44,7 +47,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     if (!active) {
       throw StateError('Repository is not active');
     }
-    if (_instances.containsKey(instance.$id)) {
+    if (_instances.containsKey(instance.$id._hashCode)) {
       throw StateError('Instance with id ${instance.$id} already exists');
     }
     if (!instance.inited) {
@@ -59,7 +62,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
 
   @mustCallSuper
   void _saveInstance(M instance) {
-    _instances[instance.$id] = _RepositoryItem(instance);
+    _instances[instance.$id._hashCode] = RepositoryItem._(instance);
     instance._$repositories.add(this);
   }
 
@@ -77,7 +80,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     if (!active) {
       throw StateError('Repository is not active');
     }
-    if (!_instances.containsKey(instance.$id)) {
+    if (!_instances.containsKey(instance.$id._hashCode)) {
       throw StateError('Instance with id ${instance.$id} does not exist');
     }
     _removeInstance(instance);
@@ -89,7 +92,7 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     if (!active) {
       throw StateError('Repository is not active');
     }
-    final item = _instances[id];
+    final item = _instances[id._hashCode];
     if (item == null) {
       throw StateError('Instance with id $id does not exist');
     }
@@ -99,13 +102,13 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
 
   @mustCallSuper
   void _removeInstance(M instance) {
-    _instances.remove(instance.$id);
+    _instances.remove(instance.$id._hashCode);
     instance._$repositories.remove(this);
   }
 
   @mustCallSuper
   void _removeMultipleInstances(
-    bool Function(Id, _RepositoryItem<M>) verifier,
+    bool Function(int, RepositoryItem<M>) verifier,
     [bool callRemoveOnProviders = false]
   ) {
     final removed = <M>[];
@@ -171,13 +174,53 @@ abstract base class Repository<M extends Model<M>> with LimitedTimeUseClass {
     _services.remove(service);
     service._repositories.remove(this);
   }
+
+  Iterable<RepositoryItem<M>> get values => _instances.values;
 }
 
-final class _RepositoryItem<M extends Model<M>> {
+final class RepositoryItem<M extends Model<M>> {
   final M instance;
-  DateTime lastUse;
+  DateTime _lastUse;
 
-  _RepositoryItem(this.instance) : lastUse = DateTime.now();
+  DateTime get lastUse => _lastUse;
 
-  void reuse() => lastUse = DateTime.now();
+  RepositoryItem._(this.instance) : _lastUse = DateTime.now();
+
+  void reuse() => _lastUse = DateTime.now();
+}
+
+final class RepositoryView<M extends Model<M>> extends MapMixin<Id, RepositoryItem<M>> {
+  final Repository<M> _repository;
+
+  RepositoryView(this._repository);
+
+  @override
+  RepositoryItem<M>? operator [](Object? key) {
+    if (key is! Id) return null;
+    return _repository._instances[key._hashCode];
+  }
+
+  @override
+  void operator []=(Id key, RepositoryItem<M> value) {
+    throw UnsupportedError('Cannot modify RepositoryView');
+  }
+
+  @override
+  void clear() {
+    throw UnsupportedError('Cannot modify RepositoryView');
+  }
+
+  @override
+  Iterable<Id> get keys => _repository._instances.keys.map((hash) {
+    final item = _repository._instances[hash]!;
+    return item.instance.$id;
+  });
+
+  @override
+  RepositoryItem<M>? remove(Object? key) {
+    throw UnsupportedError('Cannot modify RepositoryView');
+  }
+
+  @override
+  int get length => _repository._instances.length;
 }
